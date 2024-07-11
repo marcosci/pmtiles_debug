@@ -6,22 +6,21 @@
 
   let map;
   let accessToken = import.meta.env.VITE_MAPBOX_API_ACCESS_TOKEN;
-
+    let hoveredPolygonId = null;
   setContext(key, {
     getMap: () => map,
   });
 
-  const PMTILES_URL =
-    "https://r2-public.protomaps.com/protomaps-sample-datasets/protomaps-basemap-opensource-20230408.pmtiles";
+	const municipalities_pmtiles =
+		'https://germanyclimatedata.s3.eu-central-1.amazonaws.com/municipalities.pmtiles';
 
   onMount(async () => {
-    const header = await mapboxPmTiles.PmTilesSource.getHeader(PMTILES_URL);
     const map = new mapbox.Map({
       container: "map_base", // container ID
-      center: [-74.5, 40], // starting position [lng, lat]
-      zoom: 9, // starting zoom,
+      center: [10.4515, 51.1657], // starting position [lng, lat]
+      zoom: 5.7, // starting zoom,
       accessToken:
-        "pk.eyJ1IjoibWFqaWRob2phdGlyZWFkeSIsImEiOiJjbHJxbXZvZDEwMDJhMmtuMmx6NHEwYTV2In0.eLlTQdMMrimVg9NxacXFmg",
+        "pk.eyJ1Ijoia2FsZGVyYS1hYSIsImEiOiJjbDh0ejgycG8wNnpxM3duYnMwanUxeXJ3In0.P6Gw61fus39Y3C_WYDbkdA",
     });
     mapbox.Style.setSourceType(
       mapboxPmTiles.SOURCE_TYPE,
@@ -29,26 +28,75 @@
     );
 
     map.on("load", () => {
-      const PMTILES_URL =
-        "https://r2-public.protomaps.com/protomaps-sample-datasets/protomaps-basemap-opensource-20230408.pmtiles";
+ map.addSource('municipalities_source', {
+			type: mapboxPmTiles.PmTilesSource.SOURCE_TYPE,
+			url: municipalities_pmtiles,
+			promoteId: 'GEN'
+		});
 
-      map.addSource("pmTileSourceName", {
-        type: mapboxPmTiles.SOURCE_TYPE, //Add this line
-        url: PMTILES_URL,
-      });
+		map.addLayer({
+			id: 'municipalities',
+			source: 'municipalities_source',
+			'source-layer': 'gemeinden_simplify200',
+			type: 'line',
+			paint: {
+				'line-color': '#ff703b', // blue color fill
+				'line-width': 1, // blue color fill
+				'line-opacity': 0.3
+			}
+		});
 
-      map.showTileBoundaries = true;
-      map.addLayer({
-        id: "places",
-        source: "pmTileSourceName",
-        "source-layer": "places",
-        type: "circle",
-        paint: {
-          "circle-color": "steelblue",
-        },
-        maxzoom: 14,
-      });
+		map.addLayer({
+			id: 'municipalities-fill',
+			source: 'municipalities_source',
+			'source-layer': 'gemeinden_simplify200',
+			type: 'fill',
+			paint: {
+				'fill-color': '#ff703b', // blue color fill
+				'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.5, 0]
+			}
+		});
     });
+    map.on('mousemove', 'municipalities-fill', (e) => {
+		if (e.features.length > 0) {
+			if (hoveredPolygonId !== null) {
+				map.setFeatureState(
+					{
+						source: 'municipalities_source',
+						sourceLayer: 'municipalities-fill',
+						id: hoveredPolygonId
+					},
+					{ hover: false }
+				);
+			}
+			console.log(e.features[0]);
+			hoveredPolygonId = e.features[0].id;
+			map.setFeatureState(
+				{
+					source: 'municipalities_source',
+					sourceLayer: 'municipalities-fill',
+					id: hoveredPolygonId
+				},
+				{ hover: true }
+			);
+		}
+	});
+
+	// When the mouse leaves the state-fill layer, update the feature state of the
+	// previously hovered feature.
+	map.on('mouseleave', 'municipalities-fills', () => {
+		if (hoveredPolygonId !== null) {
+			map.setFeatureState(
+				{
+					source: 'municipalities_source',
+					sourceLayer: 'municipalities-fill',
+					id: hoveredPolygonId
+				},
+				{ hover: false }
+			);
+		}
+		hoveredPolygonId = null;
+	});
   });
 </script>
 
