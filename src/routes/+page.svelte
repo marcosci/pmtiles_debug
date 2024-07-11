@@ -31,7 +31,7 @@
  map.addSource('municipalities_source', {
 			type: mapboxPmTiles.PmTilesSource.SOURCE_TYPE,
 			url: municipalities_pmtiles,
-			generateId: true
+			generateId: true 
 		});
 
 		map.addLayer({
