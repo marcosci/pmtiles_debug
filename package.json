@@ -18,6 +18,6 @@
 	"type": "module",
 	"dependencies": {
 		"mapbox-gl": "^3.4.0",
-		"mapbox-pmtiles": "^1.0.47"
+		"mapbox-pmtiles": "^1.0.51"
 	}
 }
