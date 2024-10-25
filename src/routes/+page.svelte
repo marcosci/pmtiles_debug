@@ -2,17 +2,25 @@
   import { onMount, setContext } from "svelte";
   import { mapbox, key } from "./store.js";
   import "mapbox-gl/dist/mapbox-gl.css";
-  import * as mapboxPmTiles from "mapbox-pmtiles";
 
   let map;
   let accessToken = import.meta.env.VITE_MAPBOX_API_ACCESS_TOKEN;
-    let hoveredPolygonId = null;
+  let hoveredPolygonId = null;
+  let selectedOption = 'Option 1';
+
   setContext(key, {
     getMap: () => map,
   });
 
-	const municipalities_pmtiles =
-		'https://germanyclimatedata.s3.eu-central-1.amazonaws.com/municipalities.pmtiles';
+  // Reactive statement to update pmtiles and source_layer based on selectedOption
+  $: pmtiles = selectedOption === 'Option 1'
+	? 'https://germanyclimatedata.s3.eu-central-1.amazonaws.com/municipalities.pmtiles'
+	: 'https://germanyclimatedata.s3.eu-central-1.amazonaws.com/districts.pmtiles';
+
+  $: source_layer = selectedOption === 'Option 1'
+	? 'gemeinden_simplify200'
+	: 'landkreise_simplify200';
+  $: console.log(source_layer)
 
   onMount(async () => {
     const map = new mapbox.Map({
@@ -22,81 +30,6 @@
       accessToken:
         "pk.eyJ1Ijoia2FsZGVyYS1hYSIsImEiOiJjbDh0ejgycG8wNnpxM3duYnMwanUxeXJ3In0.P6Gw61fus39Y3C_WYDbkdA",
     });
-    mapbox.Style.setSourceType(
-      mapboxPmTiles.SOURCE_TYPE,
-      mapboxPmTiles.PmTilesSource
-    );
-
-    map.on("load", () => {
- map.addSource('municipalities_source', {
-			type: mapboxPmTiles.PmTilesSource.SOURCE_TYPE,
-			url: municipalities_pmtiles,
-			generateId: true 
-		});
-
-		map.addLayer({
-			id: 'municipalities',
-			source: 'municipalities_source',
-			'source-layer': 'gemeinden_simplify200',
-			type: 'line',
-			paint: {
-				'line-color': '#ff703b', // blue color fill
-				'line-width': 1, // blue color fill
-				'line-opacity': 0.3
-			}
-		});
-
-		map.addLayer({
-			id: 'municipalities-fill',
-			source: 'municipalities_source',
-			'source-layer': 'gemeinden_simplify200',
-			type: 'fill',
-			paint: {
-				'fill-color': '#ff703b', // blue color fill
-				'fill-opacity': ['case', ['boolean', ['feature-state', 'hover'], false], 0.5, 0]
-			}
-		});
-    });
-    map.on('mousemove', 'municipalities-fill', (e) => {
-		if (e.features.length > 0) {
-			if (hoveredPolygonId !== null) {
-				map.setFeatureState(
-					{
-						source: 'municipalities_source',
-						sourceLayer: 'municipalities-fill',
-						id: hoveredPolygonId
-					},
-					{ hover: false }
-				);
-			}
-			console.log(e.features[0]);
-			hoveredPolygonId = e.features[0].id;
-			map.setFeatureState(
-				{
-					source: 'municipalities_source',
-					sourceLayer: 'municipalities-fill',
-					id: hoveredPolygonId
-				},
-				{ hover: true }
-			);
-		}
-	});
-
-	// When the mouse leaves the state-fill layer, update the feature state of the
-	// previously hovered feature.
-	map.on('mouseleave', 'municipalities-fills', () => {
-		if (hoveredPolygonId !== null) {
-			map.setFeatureState(
-				{
-					source: 'municipalities_source',
-					sourceLayer: 'municipalities-fill',
-					id: hoveredPolygonId
-				},
-				{ hover: false }
-			);
-		}
-		hoveredPolygonId = null;
-	});
   });
 </script>
 
@@ -106,11 +39,41 @@
   {/if}
 </div>
 
+<div class="overlay-box">
+	<label>
+		<input
+			type="radio"
+			bind:group={selectedOption}
+			value="Option 1"
+		/>
+		Option 1
+	</label>
+	<br />
+	<label>
+		<input
+			type="radio"
+			bind:group={selectedOption}
+			value="Option 2"
+		/>
+		Option 2
+	</label>
+</div>
+
 <style>
   #map_base {
     position: absolute;
     top: 0;
     bottom: 0;
     width: 100%;
+  }
+  .overlay-box {
+		position: fixed;
+		top: 10px;
+		left: 10px;
+		background-color: rgba(255, 255, 255, 0.9);
+		border: 1px solid #ccc;
+		border-radius: 4px;
+		padding: 1rem;
+		z-index: 1000; /* Ensures it overlays other elements */
   }
 </style>
